@@ -18,22 +18,32 @@ class LinUCB:
         self.reset()
 
     def reset(self):
-        ### TODO: initialize necessary info
-
+        ### initialize necessary info
+        self.d = self.representation.param.shape[0]
+        self.A_t_inv = np.eye(self.d)/self.reg_val
+        self.b_t = np.zeros(self.d)
+        self.theta_t = np.zeros(self.d)
         ###################################
         self.t = 1
 
     def sample_action(self, context):
-        ### TODO: implement action selection strategy
-
+        ### implement action selection strategy
+        phi = self.representation.features[context]
+        alpha_t = self.noise_std*sqrt(self.d*log((1+self.t*self.param_bound**2/self.reg_val)/self.delta)) + sqrt(self.reg_val)*self.features_bound
+        mu_t = phi @ self.theta_t
+        B_t = mu_t + alpha_t*np.sqrt(np.diag(phi @ self.A_t_inv @ phi.T))
+        maxa = np.argmax(B_t)
         ###################################
         self.t += 1
         return maxa
 
     def update(self, context, action, reward):
         v = self.representation.get_features(context, action)
-        ### TODO: update internal info (return nothing)
-
+        ### update internal info (return nothing)
+        # Sherman–Morrison formula
+        self.A_t_inv = self.A_t_inv - (self.A_t_inv @ v[:, None] @ v[None, :] @ self.A_t_inv)/(1 + v[None, :] @ self.A_t_inv @ v[:, None])
+        self.b_t += reward * v
+        self.theta_t = self.A_t_inv @ self.b_t
         ###################################
 
 

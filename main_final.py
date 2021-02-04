@@ -32,6 +32,8 @@ reg_val = 1
 delta = 0.01
 T = 50000
 
+fig, ax = plt.subplots(1, 3, figsize=(15,5))
+
 b = np.load('final_representation2.npz')
 reps = []
 for i in range(b['true_rep']+1):
@@ -57,8 +59,12 @@ for el in results:
 regrets = np.array(regrets)
 mean_regret = regrets.mean(axis=0)
 std_regret = regrets.std(axis=0) / np.sqrt(regrets.shape[0])
-plt.plot(mean_regret, label="RegBalElim")
-plt.fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+
+ax[0].plot(mean_regret, label="RegBalElim")
+ax[0].fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+
+ax[1].plot(mean_regret, label="RegBalElim")
+ax[1].fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
 
 print("Running algorithm LinUCB")
 for nf, f in enumerate(reps):
@@ -80,9 +86,24 @@ for nf, f in enumerate(reps):
     regrets = np.array(regrets)
     mean_regret = regrets.mean(axis=0)
     std_regret = regrets.std(axis=0) / np.sqrt(regrets.shape[0])
-    plt.plot(mean_regret, label=f"LinUCB - f{nf}")
-    plt.fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+    
+    ax[0].plot(mean_regret, label=f"LinUCB - f{nf+1}")
+    ax[0].fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
 
-plt.legend()
+    if nf == 7 or nf == 2:
+        ax[1].plot(mean_regret, label=f"LinUCB - f{nf+1}")
+        ax[1].fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+
+        ax[2].plot(mean_regret, label=f"LinUCB - f{nf+1}")
+        ax[2].fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+
+
+ax[0].grid(True, which="both")
+ax[1].grid(True, which="both")
+ax[2].grid(True, which="both")
+
+ax[0].legend()
+ax[1].legend()
+ax[2].legend()
+
 plt.show()
-

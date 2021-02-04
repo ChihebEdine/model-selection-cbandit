@@ -19,20 +19,24 @@ class LinUCB:
 
     def reset(self):
         ### initialize necessary info
-        self.d = self.representation.param.shape[0]
+        self.d = self.representation.dim()
         self.A_t_inv = np.eye(self.d)/self.reg_val
         self.b_t = np.zeros(self.d)
         self.theta_t = np.zeros(self.d)
+        self.regret_bound = 0
         ###################################
         self.t = 1
 
     def sample_action(self, context):
         ### implement action selection strategy
         phi = self.representation.features[context]
-        alpha_t = self.noise_std*sqrt(self.d*log((1+self.t*self.param_bound**2/self.reg_val)/self.delta)) + sqrt(self.reg_val)*self.features_bound
+        beta_t = self.noise_std * sqrt( - log(np.linalg.det(self.A_t_inv)*(self.reg_val**self.d)*(self.delta**2))) + sqrt(self.reg_val)*self.param_bound
+        #beta_t = self.noise_std*sqrt(self.d*log((1+self.t*self.features_bound**2/self.reg_val)/self.delta)) + sqrt(self.reg_val)*self.param_bound
         mu_t = phi @ self.theta_t
-        B_t = mu_t + alpha_t*np.sqrt(np.diag(phi @ self.A_t_inv @ phi.T))
+        norms = np.sqrt(np.diag(phi @ self.A_t_inv @ phi.T))
+        B_t = mu_t + beta_t*norms
         maxa = np.argmax(B_t)
+        self.regret_bound += 2*beta_t*norms[maxa]
         ###################################
         self.t += 1
         return maxa
@@ -48,6 +52,7 @@ class LinUCB:
 
 
 class RegretBalancingElim:
+
     def __init__(self, 
         representations,
         reg_val, noise_std,delta=0.01
@@ -63,32 +68,47 @@ class RegretBalancingElim:
         self.t = None
         self.reset()
     
-
     def reset(self):
-        ### TODO: initialize necessary info
-
+        ### initialize necessary info
+        self.learners = [LinUCB(r, self.reg_val, self.noise_std, self.delta) for r in self.representations]
+        self.U = np.zeros(len(self.representations))
+        self.n = np.zeros(len(self.representations))
+        self.active_reps = set(range(len(self.representations)))
         ###################################
         self.t = 1
     
     def optimistic_action(self, rep_idx, context):
-        ### TODO: implement action selection strategy given the selected representation
-
+        ### implement action selection strategy given the selected representation
+        maxa = self.learners[rep_idx].sample_action(context)
         ###################################
         return maxa
 
     def sample_action(self, context):
-        ### TODO: implement representation selection strategy
-        #         and action selection strategy
-
+        ### implement representation selection strategy
+        ### and action selection strategy
+        rep_idx = min(self.active_reps, key=lambda i: self.learners[i].regret_bound)
+        action = self.optimistic_action(rep_idx, context)
+        self.last_selected_rep = rep_idx
         ###################################
         self.t += 1
         return action
 
     def update(self, context, action, reward):
         idx = self.last_selected_rep
-        v = self.representations[idx].get_features(context, action)
-        ### TODO: implement update of internal info and active set
+        ### implement update of internal info and active set
+        self.learners[idx].update(context, action, reward)
+        self.U[idx] += reward
+        self.n[idx] += 1
 
+        c = 1
+        M = len(self.learners)
+
+        regret_bounds = np.array([learner.regret_bound for learner in self.learners])
+        upper_bounds = (self.U + regret_bounds)/self.n + c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
+        lower_bounds = self.U/self.n - c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
+        max_lower_bound = np.max(lower_bounds[list(self.active_reps)])
+        ids_to_eliminate = set(np.where(upper_bounds < max_lower_bound)[0])
+        self.active_reps -= ids_to_eliminate
         ###################################
 
 

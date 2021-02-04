@@ -100,16 +100,18 @@ class RegretBalancingElim:
         self.U[idx] += reward
         self.n[idx] += 1
 
-        c = 1
-        M = len(self.learners)
+        if all(self.n>=2):
+            c = 1
+            M = len(self.learners)
 
-        regret_bounds = np.array([learner.regret_bound for learner in self.learners])
-        upper_bounds = (self.U + regret_bounds)/self.n + c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
-        lower_bounds = self.U/self.n - c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
-        max_lower_bound = np.max(lower_bounds[list(self.active_reps)])
-        ids_to_eliminate = set(np.where(upper_bounds < max_lower_bound)[0])
-        self.active_reps -= ids_to_eliminate
+            regret_bounds = np.array([learner.regret_bound for learner in self.learners])
+            upper_bounds = (self.U + regret_bounds)/self.n + c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
+            lower_bounds = self.U/self.n - c * np.sqrt(np.log(M*np.log(self.n)/self.delta)/self.n)
+            max_lower_bound = np.max(lower_bounds[list(self.active_reps)])
+            ids_to_eliminate = set(np.where(upper_bounds < max_lower_bound)[0])
+            ids_to_eliminate = self.active_reps & ids_to_eliminate
+
+            self.active_reps -= ids_to_eliminate
+            if ids_to_eliminate:
+                print(f"ids eliminated : {ids_to_eliminate}")
         ###################################
-
-
-

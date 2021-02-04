@@ -82,5 +82,7 @@ for nf, f in enumerate(reps):
     std_regret = regrets.std(axis=0) / np.sqrt(regrets.shape[0])
     plt.plot(mean_regret, label=f"LinUCB - f{nf}")
     plt.fill_between(np.arange(T), mean_regret - 2*std_regret, mean_regret + 2*std_regret, alpha=0.1)
+
+plt.legend()
 plt.show()
 

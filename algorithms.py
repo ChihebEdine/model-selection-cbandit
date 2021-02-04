@@ -31,7 +31,6 @@ class LinUCB:
         ### implement action selection strategy
         phi = self.representation.features[context]
         beta_t = self.noise_std * sqrt( - log(np.linalg.det(self.A_t_inv)*(self.reg_val**self.d)*(self.delta**2))) + sqrt(self.reg_val)*self.param_bound
-        #beta_t = self.noise_std*sqrt(self.d*log((1+self.t*self.features_bound**2/self.reg_val)/self.delta)) + sqrt(self.reg_val)*self.param_bound
         mu_t = phi @ self.theta_t
         norms = np.sqrt(np.diag(phi @ self.A_t_inv @ phi.T))
         B_t = mu_t + beta_t*norms
